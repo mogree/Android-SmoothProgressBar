@@ -3,7 +3,6 @@ package fr.castorflex.android.smoothprogressbar;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
@@ -37,7 +36,7 @@ public class SmoothProgressDrawable extends Drawable implements Animatable {
     private boolean mMirrorMode;
     private float mMaxOffset;
 
-    private SmoothProgressDrawable(Interpolator interpolator, int sectionsCount, int separatorLength, int[] colors, int width, float speed, boolean reversed, boolean mirrorMode) {
+    private SmoothProgressDrawable(Interpolator interpolator, int sectionsCount, int separatorLength, int[] colors, float strokeWidth, float speed, boolean reversed, boolean mirrorMode) {
         mRunning = false;
         mInterpolator = interpolator;
         mSectionsCount = sectionsCount;
@@ -51,10 +50,69 @@ public class SmoothProgressDrawable extends Drawable implements Animatable {
         mMaxOffset = 1f / mSectionsCount;
 
         mPaint = new Paint();
-        mPaint.setStrokeWidth(width);
+        mPaint.setStrokeWidth(strokeWidth);
         mPaint.setStyle(Paint.Style.STROKE);
         mPaint.setDither(false);
         mPaint.setAntiAlias(false);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///////////////////         SETTERS
+    public void setInterpolator(Interpolator interpolator) {
+        if (interpolator == null) throw new IllegalArgumentException("Interpolator cannot be null");
+        mInterpolator = interpolator;
+        invalidateSelf();
+    }
+
+    public void setColors(int[] colors) {
+        if (colors == null || colors.length == 0)
+            throw new IllegalArgumentException("Colors cannot be null or empty");
+        mColorsIndex = 0;
+        mColors = colors;
+        invalidateSelf();
+    }
+
+    public void setColor(int color) {
+        setColors(new int[]{color});
+    }
+
+    public void setSpeed(float speed){
+        if (speed < 0) throw new IllegalArgumentException("Speed must be >= 0");
+        mSpeed = speed;
+        invalidateSelf();
+    }
+
+    public void setSectionsCount(int sectionsCount){
+        if (sectionsCount <= 0) throw new IllegalArgumentException("SectionsCount must be > 0");
+        mSectionsCount = sectionsCount;
+        mMaxOffset = 1f / mSectionsCount;
+        mCurrentOffset %= mMaxOffset;
+        invalidateSelf();
+    }
+
+    public void setSeparatorLength(int separatorLength){
+        if (separatorLength < 0)
+            throw new IllegalArgumentException("SeparatorLength must be >= 0");
+        mSeparatorLength = separatorLength;
+        invalidateSelf();
+    }
+
+    public void setStrokeWidth(float strokeWidth){
+        if (strokeWidth < 0) throw new IllegalArgumentException("The strokeWidth must be >= 0");
+        mPaint.setStrokeWidth(strokeWidth);
+        invalidateSelf();
+    }
+
+    public void setReversed(boolean reversed){
+        if(mReversed == reversed) return;
+        mReversed = reversed;
+        invalidateSelf();
+    }
+
+    public void setMirrorMode(boolean mirrorMode){
+        if(mMirrorMode == mirrorMode) return;
+        mMirrorMode = mirrorMode;
+        invalidateSelf();
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -103,7 +161,7 @@ public class SmoothProgressDrawable extends Drawable implements Animatable {
             prev = Math.max(0f, xOffset - xSectionWidth);
             ratioSectionWidth = Math.abs(
                     mInterpolator.getInterpolation(prev) -
-                    mInterpolator.getInterpolation(Math.min(xOffset, 1f)));
+                            mInterpolator.getInterpolation(Math.min(xOffset, 1f)));
             sectionWidth = (int) (width * ratioSectionWidth);
 
             if (sectionWidth + prev < width)
@@ -225,7 +283,7 @@ public class SmoothProgressDrawable extends Drawable implements Animatable {
         private boolean mMirrorMode;
 
         private int mStrokeSeparatorLength;
-        private int mStrokeWidth;
+        private float mStrokeWidth;
 
         public Builder(Context context) {
             initValues(context);
@@ -280,7 +338,7 @@ public class SmoothProgressDrawable extends Drawable implements Animatable {
             return this;
         }
 
-        public Builder width(int width) {
+        public Builder strokeWidth(float width) {
             if (width < 0) throw new IllegalArgumentException("The width must be >= 0");
             mStrokeWidth = width;
             return this;
